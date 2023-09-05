@@ -5,7 +5,6 @@ const connection = mysql.createConnection({
   user: "root",
   port: 3306, // Default MySQL port is 3306
   password: "",
-  database: "inventory",
   connectionLimit: 10000,
 });
 
