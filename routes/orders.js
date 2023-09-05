@@ -117,9 +117,11 @@ router.post("/create", async (req, res) => {
                     productId,
                     productName: existingData.product_name,
                     quantity,
-                    orderId: orderId.toString(),
+                    orderId,
+                    orderNumber: orderId.toString(),
                     active: true,
-                    amount,
+                    unitPrice: existingData.price,
+                    fullAmount: amount,
                     customerEmail: email,
                   };
 
@@ -184,13 +186,13 @@ router.get("/read/:customerId", async (req, res) => {
 });
 
 router.put("/update/:orderNumber", async (req, res) => {
-  const orderId = req.params.orderNumber;
+  const orderNumber = req.params.orderNumber;
   const newData = req.body;
 
   try {
     // Retrieve the document by orderNumber
     const querySnapshot = await getDocs(
-      query(orderCollection, where("orderId", "==", orderId))
+      query(orderCollection, where("orderNumber", "==", orderNumber))
     );
 
     // Check if a document with the specified orderNumber exists
@@ -221,12 +223,12 @@ router.put("/update/:orderNumber", async (req, res) => {
 });
 
 router.delete("/delete/:orderNumber", async (req, res) => {
-  const orderId = req.params.orderNumber;
+  const orderNumber = req.params.orderNumber;
 
   try {
     // Retrieve the document by orderNumber
     const querySnapshot = await getDocs(
-      query(orderCollection, where("orderId", "==", orderId))
+      query(orderCollection, where("orderNumber", "==", orderNumber))
     );
 
     // Check if a document with the specified orderNumber exists
