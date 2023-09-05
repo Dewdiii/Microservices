@@ -11,6 +11,7 @@ import session from "express-session";
 import mysql from "mysql";
 import connection from "./models/inventory.js";
 import productRoutes from "./routes/products.js";
+import orderRouter from "./routes/orders.js";
 
 const app = express();
 dotenv.config();
@@ -45,6 +46,7 @@ app.use(cors());
 
 app.use("/users", userRoutes);
 app.use("/products", productRoutes);
+app.use("/orders", orderRouter);
 
 // Database connection
 const CONNECTION_URL = process.env.CONNECTION_URL;
