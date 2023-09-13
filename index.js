@@ -35,11 +35,6 @@ app.use(
 
 app.use(flash());
 
-// Your existing code for handling 404 errors
-// app.use(function (req, res, next) {
-//   next(createError(404));
-// });
-
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
@@ -63,5 +58,3 @@ mongoose
   )
   .catch((error) => console.log(error.message));
 
-// Listen on port 3000 for your other part of the code
-//app.listen(3000);

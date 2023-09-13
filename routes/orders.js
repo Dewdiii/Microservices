@@ -200,17 +200,76 @@ router.put("/update/:orderNumber", async (req, res) => {
       // Get the first document (assuming orderNumber is unique)
       const docRef = querySnapshot.docs[0].ref;
 
-      // Get the existing data from the document
+      // Get the existing data from the order
       const existingData = (await getDoc(docRef)).data();
 
-      // Merge the existing data with the new data
-      const updatedData = { ...existingData, ...newData };
+      // Get the product ID from the existing data
+      const productId = existingData.productId;
 
-      // Update the document with the merged data
-      await setDoc(docRef, updatedData);
+      // Query the database to get the product details
+      connection.query(
+        "SELECT * FROM products WHERE id = ?",
+        [productId],
+        async (selectErr, rows) => {
+          if (selectErr) {
+            console.error(selectErr);
+            return res.status(500).json({ error: "Internal Server Error" });
+          } else if (rows.length === 0) {
+            return res.status(404).json({ error: "Product not found" });
+          } else {
+            const existingProductData = rows[0];
+            const existingProductQuantity = existingProductData.quantity;
+            //console.log(existingProductQuantity + existingData.quantity - newData.quantity);
+            // Calculate the difference between the new quantity and the old quantity
+            const checkQuantity =
+              existingProductQuantity +
+              existingData.quantity -
+              newData.quantity;
 
-      res.send({ msg: "order updated successfully" });
-      console.log("Order updated successfully");
+            // Check if the new quantity is valid based on product availability
+            if (checkQuantity < 0) {
+              return res
+                .status(400)
+                .send({ error: "Insufficient quantity available" });
+            }
+
+            // Update the product quantity in the database
+            const updatedProductQuantity =
+              existingProductQuantity +
+              existingData.quantity -
+              newData.quantity;
+
+            connection.query(
+              "UPDATE products SET quantity = ? WHERE id = ?",
+              [updatedProductQuantity, productId],
+              (updateErr, result) => {
+                if (updateErr) {
+                  console.error(updateErr);
+                  return res
+                    .status(500)
+                    .json({ error: "Internal Server Error" });
+                } else {
+                  // Merge the existing data with the new data
+                  const updatedData = { ...existingData, ...newData };
+
+                  // Update the document with the merged data
+                  setDoc(docRef, updatedData)
+                    .then(() => {
+                      res.send({ msg: "Order updated successfully" });
+                      console.log("Order updated successfully");
+                    })
+                    .catch((firestoreErr) => {
+                      console.error("Error updating document: ", firestoreErr);
+                      res.status(500).send({
+                        error: "An error occurred while updating the order",
+                      });
+                    });
+                }
+              }
+            );
+          }
+        }
+      );
     } else {
       res.status(404).send({ error: "Order not found" });
     }
@@ -235,12 +294,28 @@ router.delete("/delete/:orderNumber", async (req, res) => {
     if (!querySnapshot.empty) {
       // Get the first document (assuming orderNumber is unique)
       const docRef = querySnapshot.docs[0].ref;
+      const orderData = (await getDoc(docRef)).data();
 
       // Delete the document
       await deleteDoc(docRef);
 
-      res.send({ msg: "order deleted successfully" });
-      console.log("Order deleted successfully!!");
+      // Add the quantity of the deleted order back to the product database
+      const productId = orderData.productId;
+      const quantityToAdd = orderData.quantity;
+
+      connection.query(
+        "UPDATE products SET quantity = quantity + ? WHERE id = ?",
+        [quantityToAdd, productId],
+        (updateErr, result) => {
+          if (updateErr) {
+            console.error(updateErr);
+            return res.status(500).json({ error: "Internal Server Error" });
+          } else {
+            res.send({ msg: "Order deleted successfully" });
+            console.log("Order deleted successfully!!");
+          }
+        }
+      );
     } else {
       res.status(404).send({ error: "Order not found" });
     }
