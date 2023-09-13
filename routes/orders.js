@@ -206,6 +206,10 @@ router.put("/update/:orderNumber", async (req, res) => {
       // Get the product ID from the existing data
       const productId = existingData.productId;
 
+      if (!newData.quantity) {
+        newData.quantity = existingData.quantity;
+      }
+
       // Query the database to get the product details
       connection.query(
         "SELECT * FROM products WHERE id = ?",
@@ -219,7 +223,7 @@ router.put("/update/:orderNumber", async (req, res) => {
           } else {
             const existingProductData = rows[0];
             const existingProductQuantity = existingProductData.quantity;
-            //console.log(existingProductQuantity + existingData.quantity - newData.quantity);
+
             // Calculate the difference between the new quantity and the old quantity
             const checkQuantity =
               existingProductQuantity +
@@ -238,6 +242,9 @@ router.put("/update/:orderNumber", async (req, res) => {
               existingProductQuantity +
               existingData.quantity -
               newData.quantity;
+
+            // Calculate the fullAmount based on the new quantity and unit price
+            newData.fullAmount = existingData.unitPrice * newData.quantity;
 
             connection.query(
               "UPDATE products SET quantity = ? WHERE id = ?",
@@ -297,11 +304,16 @@ router.delete("/delete/:orderNumber", async (req, res) => {
       const orderData = (await getDoc(docRef)).data();
 
       // Delete the document
-      await deleteDoc(docRef);
 
       // Add the quantity of the deleted order back to the product database
       const productId = orderData.productId;
       const quantityToAdd = orderData.quantity;
+      const active = orderData.active;
+
+      if (orderData.active === false) {
+        return res.status(400).json({ error: "Order is Over!!" });
+      }
+      await deleteDoc(docRef);
 
       connection.query(
         "UPDATE products SET quantity = quantity + ? WHERE id = ?",
